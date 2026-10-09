@@ -18,7 +18,7 @@ Real speech-to-text is out of scope: transcripts are seeded, pasted, or uploaded
 - Export a meeting as Markdown, TXT or JSON, and export action items
 - Global search across all meetings (`Ctrl + K`)
 - Tags and tag filtering
-- "Ask this meeting" chat with cited moments (LLM-powered, optional)
+- "Ask this meeting" chat with cited moments (LLM-powered)
 - Per-meeting analytics (talk time, word counts) and an overview dashboard
 - Dark mode
 
@@ -29,7 +29,7 @@ Real speech-to-text is out of scope: transcripts are seeded, pasted, or uploaded
 | Frontend | Next.js 16 (App Router, TypeScript), React 19, Tailwind CSS 4, lucide-react |
 | Backend | Python, FastAPI, Pydantic 2, Uvicorn |
 | ORM / DB | SQLAlchemy 2, SQLite |
-| LLM (optional) | Any OpenAI-compatible chat API via `httpx` (default: Groq) |
+| LLM | Any OpenAI-compatible chat API via `httpx` (default: Groq) |
 | Tests | pytest |
 
 ## Setup
