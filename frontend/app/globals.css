@@ -1,0 +1,35 @@
+@import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+  --bg: #f6f6fb; --surface: #ffffff; --border: #e7e7f0;
+  --text: #16162a; --muted: #6b6b85; --brand: #6d4aff; --brand-soft: #efeaff;
+}
+.dark {
+  --bg: #0e0e1a; --surface: #161625; --border: #2a2a40;
+  --text: #ececf6; --muted: #9a9ab5; --brand: #8b6dff; --brand-soft: #25205a;
+}
+
+@theme inline {
+  --color-bg: var(--bg);
+  --color-surface: var(--surface);
+  --color-line: var(--border);
+  --color-ink: var(--text);
+  --color-muted: var(--muted);
+  --color-brand: var(--brand);
+  --color-brand-soft: var(--brand-soft);
+}
+
+body { font-family: var(--font-sans), system-ui, sans-serif; }
+
+@layer components {
+  .field {
+    @apply w-full rounded-lg border border-line bg-surface px-3 py-2 text-sm text-ink outline-none transition focus:border-brand focus:ring-2 focus:ring-brand/20;
+  }
+  .btn-primary {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg bg-brand px-3.5 py-2 text-sm font-semibold text-white transition hover:opacity-90 disabled:opacity-50;
+  }
+  .btn-ghost {
+    @apply inline-flex items-center justify-center gap-2 rounded-lg border border-line bg-surface px-3.5 py-2 text-sm font-semibold text-ink transition hover:bg-brand-soft disabled:opacity-50;
+  }
+}
