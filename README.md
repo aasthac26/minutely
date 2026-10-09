@@ -77,7 +77,7 @@ NEXT_PUBLIC_API_URL=https://your-backend-url
 | Variable | Purpose | Default |
 |---|---|---|
 | `LLM_API_KEY` | API key for the "Ask" feature. **Optional.** Without it, Ask answers with retrieval only. | empty |
-| `LLM_MODEL` | Model name | `openai/gpt-oss-120b` in code; `.env.example` suggests `openai/gpt-oss-20b` |
+| `LLM_MODEL` | Model name | `.env.example` suggests `openai/gpt-oss-20b` |
 | `LLM_API_URL` | OpenAI-compatible chat completions URL | `https://api.groq.com/openai/v1/chat/completions` |
 | `CORS_ORIGINS` | Comma-separated allowed frontend origins | `http://localhost:3000` |
 
