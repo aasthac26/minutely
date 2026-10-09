@@ -249,4 +249,4 @@ Interactive docs: `/docs` (locally `http://127.0.0.1:8000/docs`).
 
 The demo runs on Vercel (frontend) and Render (backend).
 
-- **Backend (Render):** root directory `backend`, build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`. Environment: `PYTHON_VERSION=3.10.11`, `CORS_ORIGINS=<frontend URL>`, and optionally
+- **Backend (Render):** root directory `backend`, build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`. Environment: `PYTHON_VERSION=3.10.11`, `CORS_ORIGINS=<frontend URL>`
