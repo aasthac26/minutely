@@ -4,7 +4,7 @@ A Fireflies.ai-style meeting notes app. Browse a library of meetings, read inter
 
 - **Live demo:** https://minutely-liart.vercel.app
 - **API (Swagger docs):** https://minutely-zc9j.onrender.com/docs
-- **Repository:** https://github.com/<your-username>/minutely
+
 
 > The backend runs on a free host that sleeps when idle. The first request can take 30 to 60 seconds. Opening https://minutely-zc9j.onrender.com/health first wakes it up.
 
