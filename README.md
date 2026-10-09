@@ -2,25 +2,49 @@
 
 A Fireflies.ai-style meeting notes app. Browse a library of meetings, read interactive transcripts with speaker labels and timestamps, get summaries, action items and chapters, search across everything, and ask questions about a meeting.
 
+- **Live demo:** https://minutely-liart.vercel.app
+- **API (Swagger docs):** https://minutely-zc9j.onrender.com/docs
+- **Repository:** https://github.com/<your-username>/minutely
+
+> The backend runs on a free host that sleeps when idle. The first request can take 30 to 60 seconds. Opening https://minutely-zc9j.onrender.com/health first wakes it up.
+
 Real speech-to-text is out of scope: transcripts are seeded, pasted, or uploaded (`.txt`, `.vtt`, `.json`), and summaries are generated from the transcript text.
+
+## Try it in 60 seconds
+
+1. Open **Q4 Product Roadmap Review** and press play. Set the speed to **4x** and watch the transcript follow along.
+2. Click any transcript line to jump there. Drag the seek bar, and the highlighted line follows. The bar is coloured by speaker, with chapter breaks between segments.
+3. Press **Ctrl + K**, search `pricing`, and open a result. It lands on the exact moment.
+4. Open the **Ask** tab and try "What did Arjun say about security?" on the Northwind call. Click a citation chip to seek the player.
+5. Open the **Insights** tab for talk time and the other meeting statistics.
+6. Click **New meeting → Use sample → Create** to see the summary, chapters and action items generated from a pasted transcript.
 
 ## Features
 
 **Core**
-- **Meetings library:** title, date, duration and participants; search by title, filter by participant, tag and date range, sort by recency.
-- **Meeting detail:** transcript with speakers and timestamps, a player with a seek bar, click a line to seek (and the transcript follows the player), search inside the transcript with highlighted matches.
+- **Meetings library:** title, date, duration and participants; search by title, filter by participant, tag and date range, sort by recency; an overview strip with totals.
+- **Meeting detail:** transcript with speakers and timestamps, a player with a seek bar, click a line to seek (and the transcript follows the player), search inside the transcript with highlighted matches and next / previous.
 - **AI notes:** overview summary, keywords, action items and chapters, generated on upload and pre-built for the sample meetings.
-- **Meeting management:** create (form, paste or file upload), edit title / participants / tags, delete, and add / edit / complete / delete action items. Everything persists in SQLite.
-- **App experience:** toasts, modals, a command palette, settings placeholder, and "Coming soon" pages for integrations and team.
+- **Meeting management:** create from a pasted or uploaded transcript, edit title / participants / tags, delete, and add / edit / complete / delete action items. Everything persists in SQLite.
+- **App experience:** toasts, modals, a command palette, settings placeholders, and "Coming soon" pages for integrations and team.
 
 **Bonus**
 - Comments on transcript segments, and soundbites (highlighted clips, auto-generated)
-- Export a meeting as Markdown, TXT or JSON, and export action items
+- Export a meeting as Markdown, TXT or JSON, and export action items as CSV
 - Global search across all meetings (`Ctrl + K`)
 - Tags and tag filtering
-- "Ask this meeting" chat with cited moments (LLM-powered)
-- Per-meeting analytics (talk time, word counts) and an overview dashboard
+- "Ask this meeting" chat with cited moments (LLM-powered, with an offline fallback)
+- Per-meeting analytics and an overview dashboard
 - Dark mode
+
+## What makes it different
+
+- **Speaker timeline seek bar.** The seek bar shows who spoke when (one colour per speaker) with chapter separators, so the structure of the meeting is visible at a glance.
+- **One playback clock.** Without real audio, a single simulated clock (`usePlayer`, 1x to 4x) drives the seek bar, transcript highlighting, auto-scroll and chapters, so seeking works in both directions.
+- **Ask with citations.** Answers are grounded in retrieved transcript lines, and every citation seeks the player to that moment. It degrades gracefully: without an LLM key (or if the call fails) you still get the retrieval answer.
+- **Insights tab.** Talk-time share per speaker, words per minute, questions asked, longest turn and action-item progress, all computed from the transcript.
+- **Ctrl + K palette** that searches every transcript and deep-links to the matching timestamp.
+- **Rule-based extraction on upload.** Action items (with assignee and due dates such as "by Friday"), chapters and keywords are generated with no API key. Action items link back to the moment they were said.
 
 ## Tech stack
 
@@ -29,14 +53,15 @@ Real speech-to-text is out of scope: transcripts are seeded, pasted, or uploaded
 | Frontend | Next.js 16 (App Router, TypeScript), React 19, Tailwind CSS 4, lucide-react |
 | Backend | Python, FastAPI, Pydantic 2, Uvicorn |
 | ORM / DB | SQLAlchemy 2, SQLite |
-| LLM | Any OpenAI-compatible chat API via `httpx` (default: Groq) |
+| LLM (optional) | Any OpenAI-compatible chat API via `httpx` (default: `openai/gpt-oss-20b` on Groq), used only to write Ask answers |
 | Tests | pytest |
+| Hosting | Vercel (frontend), Render (backend) |
 
 ## Setup
 
 ### Prerequisites
 - Python 3.10+
-- Node.js 18+ and npm
+- Node.js 20+ and npm
 
 ### 1. Backend
 
@@ -56,7 +81,7 @@ cp .env.example .env        # Windows: copy .env.example .env
 uvicorn app.main:app --reload
 ```
 
-The API runs at `http://127.0.0.1:8000`, with interactive docs at `/docs`. On first start the tables are created and the database is seeded with sample meetings, so the app is usable immediately.
+The API runs at `http://127.0.0.1:8000`, with interactive docs at `/docs`. On first start the tables are created and the database is seeded with 6 sample meetings, so the app is usable immediately. To reset the data, stop the server, delete `minutely.db`, and start it again.
 
 ### 2. Frontend
 
@@ -77,7 +102,7 @@ NEXT_PUBLIC_API_URL=https://your-backend-url
 | Variable | Purpose | Default |
 |---|---|---|
 | `LLM_API_KEY` | API key for the "Ask" feature. **Optional.** Without it, Ask answers with retrieval only. | empty |
-| `LLM_MODEL` | Model name | `.env.example` suggests `openai/gpt-oss-20b` |
+| `LLM_MODEL` | Model name | `openai/gpt-oss-20b` |
 | `LLM_API_URL` | OpenAI-compatible chat completions URL | `https://api.groq.com/openai/v1/chat/completions` |
 | `CORS_ORIGINS` | Comma-separated allowed frontend origins | `http://localhost:3000` |
 
@@ -85,8 +110,10 @@ NEXT_PUBLIC_API_URL=https://your-backend-url
 
 ```bash
 cd backend
-pytest
+python -m pytest
 ```
+
+The tests use an in-memory SQLite database and the seed data, so they never touch `minutely.db`.
 
 ## Architecture
 
@@ -123,8 +150,8 @@ minutely/
 
 **Design notes**
 - **Thin routers, logic in services.** Routers validate input and delegate to services (for example `parse_transcript` and `ingest_transcript` for uploads).
-- **Ingestion pipeline.** A pasted or uploaded transcript is parsed into segments, the summarizer generates the overview, keywords, chapters and action items, and everything is stored together.
-- **Ask a question.** `qa.py` classifies the question (summary, action items or search) and retrieves transcript segments with timestamps. If `LLM_API_KEY` is set and segments were found, `llm.py` turns them into a short written answer. If the LLM is unavailable or fails, the retrieval answer is returned, so the feature always works. Answers include source chips that seek the player to the cited moment.
+- **Ingestion pipeline.** A pasted or uploaded transcript is parsed into segments, the summarizer generates the overview, keywords, chapters and action items, and everything is stored together. The three parsers produce one `ParsedSegment` type, so nothing downstream knows which format came in.
+- **Ask a question.** `qa.py` classifies the question (summary, action items or search) and retrieves transcript segments with timestamps using TF-IDF style scoring. If `LLM_API_KEY` is set and segments were found, `llm.py` turns them into a short written answer. If the LLM is unavailable or fails, the retrieval answer is returned, so the feature always works. Answers include source chips that seek the player to the cited moment.
 - **Player.** There is no real media file, so the player is driven by a simulated clock (`usePlayer`). Seeking, play / pause, speed and transcript sync all work against it.
 - **Foreign keys.** SQLite ignores foreign keys by default, so `db.py` enables `PRAGMA foreign_keys=ON` on every connection. This makes the `ON DELETE CASCADE` and `SET NULL` rules below actually apply.
 - **Frontend data.** All requests go through a typed API client (`lib/api.ts`) with shared types (`lib/types.ts`).
@@ -170,14 +197,14 @@ erDiagram
 
 ## API overview
 
-Interactive docs: `http://127.0.0.1:8000/docs`.
+Interactive docs: `/docs` (locally `http://127.0.0.1:8000/docs`).
 
 **Meetings**
 
 | Method | Endpoint | Description |
 |---|---|---|
 | GET | `/meetings` | List meetings. Query: `q`, `participant`, `tag`, `date_from`, `date_to`, `sort` (`date_desc` / `date_asc`) |
-| POST | `/meetings` | Create a meeting from a form (title, date, participants, tags) |
+| POST | `/meetings` | Create a meeting from metadata only (title, date, participants, tags) |
 | POST | `/meetings/paste` | Create a meeting from pasted transcript text |
 | POST | `/meetings/upload` | Create a meeting from an uploaded transcript file (max 2 MB) |
 | GET | `/meetings/{id}` | Meeting detail: transcript, summary, topics, action items |
@@ -188,7 +215,7 @@ Interactive docs: `http://127.0.0.1:8000/docs`.
 
 | Method | Endpoint | Description |
 |---|---|---|
-| GET | `/action-items` | Action items across all meetings |
+| GET | `/action-items` | Action items across all meetings (`is_done`, `assignee` filters) |
 | POST | `/meetings/{id}/action-items` | Add an action item to a meeting |
 | PATCH | `/action-items/{item_id}` | Edit or complete an action item |
 | DELETE | `/action-items/{item_id}` | Delete an action item |
@@ -201,7 +228,7 @@ Interactive docs: `http://127.0.0.1:8000/docs`.
 | POST | `/meetings/{id}/comments` | Add a comment (optionally on a segment) |
 | DELETE | `/comments/{comment_id}` | Delete a comment |
 | GET | `/meetings/{id}/soundbites` | List soundbites |
-| POST | `/meetings/{id}/soundbites/generate` | Auto-generate soundbites |
+| POST | `/meetings/{id}/soundbites/generate` | Auto-generate soundbites (replaces existing ones) |
 | DELETE | `/soundbites/{soundbite_id}` | Delete a soundbite |
 
 **Search, insights and export**
@@ -211,25 +238,15 @@ Interactive docs: `http://127.0.0.1:8000/docs`.
 | GET | `/search` | Global search across all transcripts |
 | GET | `/tags` | All tags |
 | GET | `/participants` | All participants |
-| GET | `/meetings/{id}/analytics` | Talk time and word counts per speaker |
+| GET | `/meetings/{id}/analytics` | Talk time, words per minute, questions, action-item stats |
 | POST | `/meetings/{id}/ask` | Ask a question. Returns `answer`, `intent`, `sources` (and `generated: true` when the LLM wrote it) |
 | GET | `/analytics/overview` | Totals across meetings: hours, open / done action items, top speakers |
-| GET | `/meetings/{id}/export` | Export a meeting (Markdown, TXT or JSON) |
-| GET | `/export/action-items` | Export action items |
+| GET | `/meetings/{id}/export` | Export a meeting (`format=md`, `txt` or `json`) |
+| GET | `/export/action-items` | Export action items as CSV |
 | GET | `/health` | Health check |
 
-## Deployment notes
+## Deployment
 
-- **Backend** (for example Render): root directory `backend`, build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`. Set `CORS_ORIGINS` to the frontend URL, and optionally `LLM_API_KEY` and `LLM_MODEL`.
-- **Frontend** (for example Vercel): root directory `frontend`. Set `NEXT_PUBLIC_API_URL` to the backend URL.
-- On free hosts the backend may sleep when idle, so the first request can be slow.
+The demo runs on Vercel (frontend) and Render (backend).
 
-## Assumptions and limitations
-
-- **No authentication.** A default logged-in user is assumed, as the assignment allows. Profile, Settings, Integrations and Team are placeholders.
-- **No real audio.** The player is a simulated timeline so seeking and transcript sync can be demonstrated without media files.
-- **Summaries, chapters and action items are rule-based**, generated from the transcript text. The LLM is used only for "Ask this meeting", and it is optional.
-- **Transcript formats.** `.txt`, `.vtt` and `.json` uploads are supported, up to 2 MB.
-- **Export formats** are Markdown, TXT and JSON (no PDF).
-- **SQLite on hosted platforms** may use ephemeral storage. The database is re-seeded when empty, but meetings created on a free host can be lost on restart.
-- **Sample data** is entirely fictional.
+- **Backend (Render):** root directory `backend`, build `pip install -r requirements.txt`, start `uvicorn app.main:app --host 0.0.0.0 --port $PORT`. Environment: `PYTHON_VERSION=3.10.11`, `CORS_ORIGINS=<frontend URL>`, and optionally
